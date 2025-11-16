@@ -9,6 +9,20 @@ using System.Collections.Generic;
 [RequireComponent(typeof(MeshFilter), typeof(Rigidbody))]
 public class DeformableBall : MonoBehaviour
 {
+    /// <summary>
+    /// Types de matériaux prédéfinis avec comportements physiques réalistes
+    /// </summary>
+    public enum MaterialPreset
+    {
+        Custom,           // Paramètres manuels
+        Souple            // Idéalement paramètres finaux
+    }
+
+    [Header("Presets de Matériaux")]
+    [Tooltip("Sélectionner un preset ou 'Custom' pour ajuster manuellement")]
+    public MaterialPreset materialPreset = MaterialPreset.Custom;
+
+    [Space(10)]
     [Header("Paramètres Physiques de la Balle")]
     [Tooltip("Module de Young - Rigidité du matériau (N/m²)")]
     [Range(1000f, 50000f)]
@@ -62,6 +76,10 @@ public class DeformableBall : MonoBehaviour
     [Range(0.0001f, 0.01f)]
     public float convergenceThreshold = 0.001f;
 
+    [Tooltip("Temps maximum de déformation avant reset forcé (secondes)")]
+    [Range(2f, 10f)]
+    public float maxDeformationTime = 5f;
+
     [Space(10)]
     [Header("Visualisation Debug")]
     [Tooltip("Afficher les gizmos de déformation")]
@@ -104,6 +122,9 @@ public class DeformableBall : MonoBehaviour
     // Performance stats
     private int lastActiveVertexCount = 0;
     private float lastUpdateTime = 0f;
+
+    // Preset tracking
+    private MaterialPreset lastAppliedPreset = MaterialPreset.Custom;
 
     void Start()
     {
@@ -182,7 +203,55 @@ public class DeformableBall : MonoBehaviour
         {
             UpdateInfluenceRadius();
         }
+
+        // Appliquer le preset si changé dans l'inspecteur
+        if (materialPreset != MaterialPreset.Custom && materialPreset != lastAppliedPreset)
+        {
+            ApplyMaterialPreset(materialPreset);
+        }
     }
+
+    /// <summary>
+    /// Applique un preset de matériau avec des paramètres physiques prédéfinis
+    /// </summary>
+    [ContextMenu("Apply Current Preset")]
+    public void ApplyMaterialPreset(MaterialPreset preset)
+    {
+        lastAppliedPreset = preset;
+
+        switch (preset)
+        {
+            case MaterialPreset.Souple:
+                youngModulus = 3500f;
+                maxDeformation = 0.75f;
+                recoverySpeed =  8f;
+                forceThreshold = 0.5f;
+                influenceRadiusMultiplier = 2.2f;
+                poissonRatio = 0.46f;
+                dampingFactor = 0.92f;
+                snapbackMultiplier = 1.8f;
+                recoveryExponent = 2.0f;
+                substepsPerFrame = 3;
+                maxDeformationTime = 6f;
+                Debug.Log("Preset appliqué: Souple");
+                break;
+
+            case MaterialPreset.Custom:
+                Debug.Log("Mode Custom: ajustez les paramètres manuellement");
+                break;
+        }
+
+        // Recalculer les constantes dérivées
+        if (Application.isPlaying)
+        {
+            UpdateInfluenceRadius();
+            CacheConstants();
+        }
+    }
+
+    // Context menu pour appliquer rapidement les presets
+    [ContextMenu("Preset: Souple")]
+    void ApplySouple() { materialPreset = MaterialPreset.Souple; ApplyMaterialPreset(materialPreset); }
 
     void FixedUpdate()
     {
@@ -441,7 +510,7 @@ public class DeformableBall : MonoBehaviour
         // Mesh update is deferred to FixedUpdate -> UpdateMeshGeometry
         // to avoid multiple updates per frame
 
-        if (!hasActiveDeformation || deformationTimer > 3f)
+        if (!hasActiveDeformation || deformationTimer > maxDeformationTime)
         {
             ResetToOriginalShape();
         }
@@ -514,76 +583,35 @@ public class DeformableBall : MonoBehaviour
 
     void OnDrawGizmos()
     {
-        if (!showDebugGizmos || !isDeforming || !Application.isPlaying) return;
+        if (!showDebugGizmos || !Application.isPlaying || !isDeforming || currentVertices == null)
+            return;
 
-        Gizmos.color = Color.red;
         Vector3 worldImpactPoint = transform.TransformPoint(lastImpactPoint);
+
+        // Impact point
+        Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(worldImpactPoint, 0.05f);
 
+        // Impact normal
         Gizmos.color = Color.yellow;
         Vector3 worldNormal = transform.TransformDirection(lastImpactNormal);
         Gizmos.DrawLine(worldImpactPoint, worldImpactPoint + worldNormal * 0.3f);
 
-        Gizmos.color = new Color(1f, 0f, 0f, 0.3f);
-        Gizmos.DrawWireSphere(worldImpactPoint, influenceRadius * transform.localScale.x);
-    }
-
-    void OnDrawGizmosSelected()
-    {
-        if (!Application.isPlaying || currentVertices == null)
-            return;
-
-        if (isDeforming)
+        // Visualize deformed vertices
+        for (int i = 0; i < currentVertices.Length; i++)
         {
-            Gizmos.color = new Color(1f, 0.6f, 0f, 0.15f);
-            Vector3 worldImpact = transform.TransformPoint(lastImpactPoint);
-            Gizmos.DrawSphere(worldImpact, influenceRadius * transform.localScale.x);
-
-            Gizmos.color = Color.magenta;
-            Vector3 worldImpactNormal = transform.TransformDirection(lastImpactNormal);
-            Gizmos.DrawLine(worldImpact, worldImpact + worldImpactNormal * 0.3f * transform.localScale.x);
-
-            for (int i = 0; i < currentVertices.Length; i++)
+            float deformation = Vector3.Distance(currentVertices[i], originalVertices[i]);
+            if (deformation > 0.001f)
             {
-                float deformation = Vector3.Distance(currentVertices[i], originalVertices[i]);
-                if (deformation > 0.0005f)
-                {
-                    Vector3 from = transform.TransformPoint(originalVertices[i]);
-                    Vector3 to = transform.TransformPoint(currentVertices[i]);
+                Vector3 from = transform.TransformPoint(originalVertices[i]);
+                Vector3 to = transform.TransformPoint(currentVertices[i]);
 
-                    float maxDef = originalRadius * 0.30f;
-                    float t = Mathf.Clamp01(deformation / maxDef);
+                // Color based on deformation intensity (green = low, red = high)
+                float t = Mathf.Clamp01(deformation / (originalRadius * 0.3f));
+                Gizmos.color = Color.Lerp(Color.green, Color.red, t);
 
-                    Color gradientColor;
-                    if (t < 0.33f)
-                        gradientColor = Color.Lerp(Color.blue, Color.green, t / 0.33f);
-                    else if (t < 0.66f)
-                        gradientColor = Color.Lerp(Color.green, Color.yellow, (t - 0.33f) / 0.33f);
-                    else
-                        gradientColor = Color.Lerp(Color.yellow, Color.red, (t - 0.66f) / 0.34f);
-
-                    Gizmos.color = gradientColor;
-                    Gizmos.DrawSphere(to, 0.0125f * transform.localScale.x);
-
-                    Gizmos.color = new Color(gradientColor.r, gradientColor.g, gradientColor.b, 0.6f);
-                    Gizmos.DrawLine(from, to);
-                }
-            }
-        }
-
-        // Arêtes du mesh (optionnel: fil de fer)
-        if (deformableMesh != null && deformableMesh.triangles.Length > 0)
-        {
-            Gizmos.color = new Color(0f,0f,0f,0.15f);
-            int[] tris = deformableMesh.triangles;
-            for (int i = 0; i < tris.Length; i += 3)
-            {
-                Vector3 v0 = transform.TransformPoint(currentVertices[tris[i]]);
-                Vector3 v1 = transform.TransformPoint(currentVertices[tris[i+1]]);
-                Vector3 v2 = transform.TransformPoint(currentVertices[tris[i+2]]);
-                Gizmos.DrawLine(v0, v1);
-                Gizmos.DrawLine(v1, v2);
-                Gizmos.DrawLine(v2, v0);
+                // Show displacement
+                Gizmos.DrawLine(from, to);
             }
         }
     }
@@ -592,8 +620,9 @@ public class DeformableBall : MonoBehaviour
     {
         if (!showPerformanceStats || !Application.isPlaying) return;
 
-        GUILayout.BeginArea(new Rect(10, 10, 300, 170));
+        GUILayout.BeginArea(new Rect(10, 10, 320, 180));
         GUILayout.Box("Deformable Ball Stats");
+        GUILayout.Label($"Material Preset: {materialPreset}");
         GUILayout.Label($"Active Vertices: {lastActiveVertexCount} / {originalVertices?.Length ?? 0}");
         GUILayout.Label($"Update Time: {lastUpdateTime:F3} ms");
         GUILayout.Label($"Is Deforming: {isDeforming}");
