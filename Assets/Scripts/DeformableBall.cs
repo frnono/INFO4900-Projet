@@ -41,6 +41,10 @@ public class DeformableBall : MonoBehaviour
     [Tooltip("Force minimale pour déclencher la déformation (N)")]
     public float forceThreshold = 3f;
 
+    [Tooltip("Diviseur de normalisation de la force (plus élevé = déformation plus sensible aux impacts)")]
+    [Range(1f, 20f)]
+    public float forceNormalizationDivisor = 5f;
+
     [Tooltip("Rayon d'influence de la déformation (multiplicateur du rayon original)")]
     [Range(1f, 3f)]
     public float influenceRadiusMultiplier = 1.5f;
@@ -65,6 +69,32 @@ public class DeformableBall : MonoBehaviour
 
     [Tooltip("Empêcher l'extension au-delà de la forme originale")]
     public bool preventOvershoot = true;
+
+    [Space(10)]
+    [Header("Paramètres Avancés de Déformation")]
+    [Tooltip("Seuil minimal d'influence spatiale (vertices avec influence inférieure sont ignorés)")]
+    [Range(0.001f, 0.1f)]
+    public float minSpatialInfluence = 0.01f;
+
+    [Tooltip("Exposant de la courbe d'influence spatiale (plus élevé = déformation plus concentrée)")]
+    [Range(1f, 3f)]
+    public float spatialInfluenceExponent = 1.5f;
+
+    [Tooltip("Facteur de normalisation du rayon pour le calcul de récupération")]
+    [Range(0.1f, 1f)]
+    public float radiusNormalizationFactor = 0.5f;
+
+    [Tooltip("Multiplicateur de vitesse pour le retour final au repos")]
+    [Range(1f, 10f)]
+    public float finalRecoverySpeedMultiplier = 3f;
+
+    [Tooltip("Tolérance d'overshoot (1.0 = aucune tolérance, 1.05 = 5% de tolérance)")]
+    [Range(1f, 1.1f)]
+    public float overshootTolerance = 1.01f;
+
+    [Tooltip("Réduction de vélocité lors du clamping d'overshoot")]
+    [Range(0.1f, 0.9f)]
+    public float overshootVelocityDamping = 0.3f;
 
     [Space(10)]
     [Header("Qualité de Simulation")]
@@ -226,11 +256,21 @@ public class DeformableBall : MonoBehaviour
                 maxDeformation = 0.75f;
                 recoverySpeed =  8f;
                 forceThreshold = 0.5f;
+                forceNormalizationDivisor = 10f;
                 influenceRadiusMultiplier = 2.2f;
                 poissonRatio = 0.46f;
                 dampingFactor = 0.92f;
                 snapbackMultiplier = 1.8f;
                 recoveryExponent = 2.0f;
+                preventOvershoot = true;
+                // Paramètres avancés
+                minSpatialInfluence = 0.015f;
+                spatialInfluenceExponent = 1.8f;
+                radiusNormalizationFactor = 0.6f;
+                finalRecoverySpeedMultiplier = 4f;
+                overshootTolerance = 1.02f;
+                overshootVelocityDamping = 0.25f;
+                // Qualité de simulation
                 substepsPerFrame = 3;
                 maxDeformationTime = 6f;
                 Debug.Log("Preset appliqué: Souple");
@@ -320,7 +360,7 @@ public class DeformableBall : MonoBehaviour
         activeVertexIndices.Clear();
         activeVertexSet.Clear();
 
-        float normalizedForce = Mathf.Clamp01(impactForce / (rb.mass * 20f));
+        float normalizedForce = Mathf.Clamp01(impactForce / (rb.mass * forceNormalizationDivisor));
         float influenceRadiusSqr = influenceRadius * influenceRadius; // Optimisation
 
         for (int i = 0; i < originalVertices.Length; i++)
@@ -340,7 +380,7 @@ public class DeformableBall : MonoBehaviour
             float distanceToImpact = Mathf.Sqrt(distanceSqrToImpact);
             float spatialInfluence = CalculateSpatialInfluence(vertex, distanceToImpact);
 
-            if (spatialInfluence > 0.01f)
+            if (spatialInfluence > minSpatialInfluence)
             {
                 float compressionAmount = normalizedForce * maxDeformation * spatialInfluence;
                 vertexDeformations[i] = compressionAmount;
@@ -377,7 +417,7 @@ public class DeformableBall : MonoBehaviour
         float angleFactor = Mathf.Max(0f, Vector3.Dot(vertexDirection, lastImpactNormal));
 
         float influence = distanceFactor * angleFactor;
-        return Mathf.Pow(influence, 1.5f);
+        return Mathf.Pow(influence, spatialInfluenceExponent);
     }
 
     Vector3 CalculateVolumeConservingDeformation(Vector3 vertex, Vector3 impactNormal, float compression)
@@ -433,7 +473,7 @@ public class DeformableBall : MonoBehaviour
                 }
                 
                 float exponentialFactor = Mathf.Pow(
-                    displacementMag / (originalRadius * 0.5f), 
+                    displacementMag / (originalRadius * radiusNormalizationFactor),
                     recoveryExponent - 1f
                 );
                 Vector3 restoreForce = -displacement * stiffnessConstant * exponentialFactor;
@@ -455,12 +495,12 @@ public class DeformableBall : MonoBehaviour
                         float newDistSqr = newPosition.sqrMagnitude;
 
                         // Si le vertex s'éloigne plus que la position originale
-                        if (newDistSqr > originalDistSqr * 1.01f) // 1% de tolérance
+                        if (newDistSqr > originalDistSqr * overshootTolerance)
                         {
                             // Clamper à la distance originale
                             float originalDist = Mathf.Sqrt(originalDistSqr);
                             newPosition = newPosition.normalized * originalDist;
-                            vertexVelocities[i] *= 0.3f;
+                            vertexVelocities[i] *= overshootVelocityDamping;
                         }
                     }
                 }
@@ -478,7 +518,7 @@ public class DeformableBall : MonoBehaviour
                 currentVertices[i] = Vector3.Lerp(
                     currentVertices[i],
                     originalVertices[i],
-                    deltaTime * recoverySpeed * 3f
+                    deltaTime * recoverySpeed * finalRecoverySpeedMultiplier
                 );
 
                 vertexVelocities[i] = Vector3.zero;
