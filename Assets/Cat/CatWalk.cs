@@ -1,59 +1,108 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class CatWalk : MonoBehaviour
 {
-    [Header("Point d'arr�t")]
-    public Transform walkPoint;      // Destination unique
-    public float walkSpeed = 1.2f;   // Vitesse du chat
-    public float stopDistance = 0.2f;
+    [Header("Marche du chat")]
+    public Transform walkPoint;      // Destination
+    public float walkSpeed = 0.12f;  // Vitesse du chat
 
     private Animator anim;
-    private bool walking = true;
-    private bool finished = false;
+    private bool isWalking = true;
+    private bool reached = false;
+
+    [Header("Contact avec la balle (basé sur le mesh)")]
+    public Transform pawHitPoint;    // Empty sur la patte / tête / poitrine du chat
+    public Rigidbody ballRb;         // Rigidbody de la balle
+    public float hitDistance = 0.07f; // Distance de contact visuel (essaie 0.05–0.1)
+    public float hitForce = 2.5f;    // Force appliquée à la balle
+    private bool hasHitBall = false;
 
     void Start()
     {
         anim = GetComponentInChildren<Animator>();
 
         if (anim != null)
-            anim.SetBool("isWalking", true);
+            anim.SetBool("isWalking", true); // lance animation Walk
     }
 
     void Update()
     {
-        if (finished || !walking) return;
+        // Vérifie d'abord si on doit frapper la balle
+        HandleBallHit();
 
-        WalkToPoint();
+        if (reached || walkPoint == null) return;
+
+        MoveToPoint();
     }
 
-    // --------- MARCHE NORMALE ---------
-    void WalkToPoint()
+    void MoveToPoint()
     {
-        if (walkPoint == null) return;
+        // Position cible (même hauteur)
+        Vector3 target = new Vector3(
+            walkPoint.position.x,
+            transform.position.y,
+            walkPoint.position.z
+        );
 
-        Vector3 dir = walkPoint.position - transform.position;
-        dir.y = 0f;
+        // Distance actuelle
+        float distance = Vector3.Distance(transform.position, target);
 
-        // Si assez proche ? s'arr�ter
-        if (dir.magnitude < stopDistance)
+        // Arrête à la cible
+        if (distance < 0.01f)
         {
-            walking = false;
-            finished = true;
+            reached = true;
+            isWalking = false;
+
+            // place exactement le chat au point
+            transform.position = target;
 
             if (anim != null)
-                anim.SetBool("isWalking", false); // Passe en Idle
+                anim.SetBool("isWalking", false); // Idle
 
             return;
         }
 
-        // Avancer
-        transform.position += dir.normalized * walkSpeed * Time.deltaTime;
+        // Marche vers la cible
+        float step = walkSpeed * Time.deltaTime;
+        transform.position = Vector3.MoveTowards(transform.position, target, step);
 
-        // Rotation douce vers la destination
-        if (dir.sqrMagnitude > 0.001f)
+        // Rotation douce vers la cible
+        Vector3 dir = target - transform.position;
+        dir.y = 0f;
+
+        if (dir.sqrMagnitude > 0.0001f)
         {
-            Quaternion look = Quaternion.LookRotation(dir);
-            transform.rotation = Quaternion.Slerp(transform.rotation, look, 10f * Time.deltaTime);
+            Quaternion rot = Quaternion.LookRotation(dir);
+            transform.rotation = Quaternion.Slerp(transform.rotation, rot, 10f * Time.deltaTime);
+        }
+    }
+
+    void HandleBallHit()
+    {
+        if (hasHitBall) return;
+        if (pawHitPoint == null || ballRb == null) return;
+
+        // Distance uniquement en XZ (pour ignorer la hauteur)
+        Vector3 pawXZ = new Vector3(pawHitPoint.position.x, 0f, pawHitPoint.position.z);
+        Vector3 ballXZ = new Vector3(ballRb.position.x, 0f, ballRb.position.z);
+
+        float d = Vector3.Distance(pawXZ, ballXZ);
+
+        if (d <= hitDistance)
+        {
+            hasHitBall = true;
+            Debug.Log("HIT TRIGGERED!");
+
+            // Patte frappe la balle
+            Vector3 dir = (ballRb.position - pawHitPoint.position);
+            dir.y = 0f;
+
+            if (dir.sqrMagnitude < 0.0001f)
+                dir = transform.forward;
+            else
+                dir.Normalize();
+
+            ballRb.AddForce(dir * hitForce, ForceMode.Impulse);
         }
     }
 }
