@@ -2039,7 +2039,6 @@ MonoBehaviour:
   m_Script: {fileID: 1426721084}
   m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.HighDefinition.Runtime::UnityEngine.Rendering.HighDefinition.SceneObjectIDMapSceneAsset
-  m_Entries: []
 --- !u!4 &390245072
 Transform:
   m_ObjectHideFlags: 19
@@ -2614,7 +2613,6 @@ MonoBehaviour:
   m_Script: {fileID: 777790853}
   m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.HighDefinition.Runtime::UnityEngine.Rendering.HighDefinition.SceneObjectIDMapSceneAsset
-  m_Entries: []
 --- !u!4 &588386101
 Transform:
   m_ObjectHideFlags: 19
@@ -6398,7 +6396,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: b13733fb85e7df941804a936f8f3d568, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 46.134
+      value: 46.413
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: b13733fb85e7df941804a936f8f3d568, type: 3}
       propertyPath: m_LocalRotation.w
