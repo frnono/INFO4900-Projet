@@ -23,7 +23,7 @@ MonoBehaviour:
     m_OverrideState: 0
     m_Value: 1
   color:
-    m_OverrideState: 0
+    m_OverrideState: 1
     m_Value: {r: 0.5, g: 0.5, b: 0.5, a: 1}
   tint:
     m_OverrideState: 0
@@ -107,6 +107,51 @@ MonoBehaviour:
   - {fileID: 6427681762186561365}
   - {fileID: 7450469446435663922}
   - {fileID: -3272520134932373674}
+  - {fileID: 5225399192784207515}
+--- !u!114 &5225399192784207515
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d7593b3a9277ac4696b20006c21dde2, type: 3}
+  m_Name: VisualEnvironment
+  m_EditorClassIdentifier: Unity.RenderPipelines.HighDefinition.Runtime::UnityEngine.Rendering.HighDefinition.VisualEnvironment
+  active: 1
+  skyType:
+    m_OverrideState: 0
+    m_Value: 1
+  cloudType:
+    m_OverrideState: 0
+    m_Value: 0
+  skyAmbientMode:
+    m_OverrideState: 0
+    m_Value: 1
+  planetRadius:
+    m_OverrideState: 0
+    m_Value: 6378.1
+  renderingSpace:
+    m_OverrideState: 0
+    m_Value: 1
+  centerMode:
+    m_OverrideState: 0
+    m_Value: 0
+  planetCenter:
+    m_OverrideState: 0
+    m_Value: {x: 0, y: -6378.1, z: 0}
+  windOrientation:
+    m_OverrideState: 0
+    m_Value: 0
+  windSpeed:
+    m_OverrideState: 0
+    m_Value: 0
+  fogType:
+    m_OverrideState: 0
+    m_Value: 0
+  m_Version: 1
 --- !u!114 &6427681762186561365
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -285,10 +330,10 @@ MonoBehaviour:
     m_Value: 1
   upperHemisphereLuxValue:
     m_OverrideState: 1
-    m_Value: 787.60455
+    m_Value: 5.0669303
   upperHemisphereLuxColor:
     m_OverrideState: 1
-    m_Value: {x: 0.1897733, y: 0.29378763, z: 0.5}
+    m_Value: {x: 0.4947779, y: 0.5, z: 0.49748322}
   desiredLuxValue:
     m_OverrideState: 0
     m_Value: 20000
@@ -303,7 +348,7 @@ MonoBehaviour:
     m_Value: 0
   hdriSky:
     m_OverrideState: 1
-    m_Value: {fileID: 0}
+    m_Value: {fileID: 8900000, guid: afd07816b8dafc0489d49780e1442fd9, type: 3}
   distortionMode:
     m_OverrideState: 0
     m_Value: 0
