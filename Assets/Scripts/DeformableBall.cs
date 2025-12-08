@@ -1,21 +1,14 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-/// <summary>
-/// Système de déformation physiquement réaliste pour une balle souple
-/// Implémente le squash & stretch avec conservation du volume
-/// Conçu pour le projet INFO4900 - Challenge de dynamique physique
-/// </summary>
+// Déformation physique avec conservation du volume (squash & stretch)
 [RequireComponent(typeof(MeshFilter), typeof(Rigidbody))]
 public class DeformableBall : MonoBehaviour
 {
-    /// <summary>
-    /// Types de matériaux prédéfinis avec comportements physiques réalistes
-    /// </summary>
     public enum MaterialPreset
     {
-        Custom,           // Paramètres manuels
-        Souple            // Idéalement paramètres finaux
+        Custom,
+        Souple
     }
 
     [Header("Presets de Matériaux")]
@@ -23,47 +16,47 @@ public class DeformableBall : MonoBehaviour
     public MaterialPreset materialPreset = MaterialPreset.Custom;
 
     [Space(10)]
-    [Header("Paramètres Physiques de la Balle")]
-    [Tooltip("Module de Young - Rigidité du matériau (N/m²)")]
+    [Header("Paramètres Physiques")]
+    [Tooltip("Rigidité du matériau")]
     [Range(0f, 25000f)]
     public float youngModulus = 15000f;
 
     [Space(10)]
-    [Header("Paramètres de Déformation")]
-    [Tooltip("Intensité maximale de déformation (0-1)")]
+    [Header("Déformation")]
+    [Tooltip("Intensité maximale (0-1)")]
     [Range(0f, 1f)]
     public float maxDeformation = 0.5f;
 
-    [Tooltip("Vitesse de récupération de la forme originale")]
+    [Tooltip("Vitesse de récupération")]
     [Range(1f, 30f)]
     public float recoverySpeed = 12f;
 
-    [Tooltip("Force minimale pour déclencher la déformation (N)")]
+    [Tooltip("Force minimale pour déformer")]
     public float forceThreshold = 3f;
 
-    [Tooltip("Diviseur de normalisation de la force (plus élevé = déformation plus sensible aux impacts)")]
+    [Tooltip("Sensibilité aux impacts")]
     [Range(1f, 20f)]
     public float forceNormalizationDivisor = 5f;
 
-    [Tooltip("Rayon d'influence de la déformation (multiplicateur du rayon original)")]
+    [Tooltip("Rayon d'influence (x rayon original)")]
     [Range(1f, 5f)]
     public float influenceRadiusMultiplier = 1.5f;
 
-    [Tooltip("Coefficient de Poisson - Conservation du volume (0.3-0.5 pour caoutchouc)")]
+    [Tooltip("Conservation du volume (0.3-0.5)")]
     [Range(0.3f, 0.499f)]
     public float poissonRatio = 0.45f;
 
     [Space(10)]
-    [Header("Amortissement et Stabilité")]
-    [Tooltip("Amortissement des oscillations de la déformation (0-1)")]
+    [Header("Stabilité")]
+    [Tooltip("Amortissement des oscillations")]
     [Range(0.8f, 0.99f)]
     public float dampingFactor = 0.95f;
 
-    [Tooltip("Multiplicateur de vitesse initiale de récupération")]
+    [Tooltip("Multiplicateur vitesse de récupération")]
     [Range(0.5f, 3f)]
     public float snapbackMultiplier = 1.2f;
 
-    [Tooltip("Exposant de la courbe de récupération (>1 = récupération initiale plus rapide)")]
+    [Tooltip("Courbe de récupération (>1 = plus rapide au début)")]
     [Range(1f, 3f)]
     public float recoveryExponent = 1.5f;
 
@@ -71,70 +64,64 @@ public class DeformableBall : MonoBehaviour
     public bool preventOvershoot = true;
 
     [Space(10)]
-    [Header("Paramètres Avancés de Déformation")]
-    [Tooltip("Seuil minimal d'influence spatiale (vertices avec influence inférieure sont ignorés)")]
+    [Header("Paramètres Avancés")]
+    [Tooltip("Seuil minimal d'influence")]
     [Range(0.001f, 0.1f)]
     public float minSpatialInfluence = 0.01f;
 
-    [Tooltip("Exposant de la courbe d'influence spatiale (plus élevé = déformation plus concentrée)")]
+    [Tooltip("Concentration de la déformation")]
     [Range(1f, 3f)]
     public float spatialInfluenceExponent = 1.5f;
 
-    [Tooltip("Facteur de normalisation du rayon pour le calcul de récupération")]
+    [Tooltip("Normalisation du rayon")]
     [Range(0.1f, 1f)]
     public float radiusNormalizationFactor = 0.5f;
 
-    [Tooltip("Multiplicateur de vitesse pour le retour final au repos")]
+    [Tooltip("Vitesse retour final")]
     [Range(1f, 10f)]
     public float finalRecoverySpeedMultiplier = 3f;
 
-    [Tooltip("Tolérance d'overshoot (1.0 = aucune tolérance, 1.05 = 5% de tolérance)")]
+    [Tooltip("Tolérance overshoot (1.0 = aucune)")]
     [Range(1f, 1.1f)]
     public float overshootTolerance = 1.01f;
 
-    [Tooltip("Réduction de vélocité lors du clamping d'overshoot")]
+    [Tooltip("Réduction vélocité overshoot")]
     [Range(0.1f, 0.9f)]
     public float overshootVelocityDamping = 0.3f;
 
     [Space(10)]
-    [Header("Qualité de Simulation")]
-    [Tooltip("Nombre de substeps par frame pour meilleure stabilité")]
+    [Header("Qualité")]
+    [Tooltip("Substeps par frame")]
     [Range(1, 5)]
     public int substepsPerFrame = 2;
 
-    [Tooltip("Seuil de convergence pour déformation inactive")]
+    [Tooltip("Seuil de convergence")]
     [Range(0.0001f, 0.01f)]
     public float convergenceThreshold = 0.001f;
 
-    [Tooltip("Temps maximum de déformation avant reset forcé (secondes)")]
+    [Tooltip("Temps max avant reset (s)")]
     [Range(2f, 10f)]
     public float maxDeformationTime = 5f;
 
     [Space(10)]
-    [Header("Visualisation Debug")]
-    [Tooltip("Afficher les gizmos de déformation")]
+    [Header("Debug")]
     public bool showDebugGizmos = true;
-
-    [Tooltip("Afficher les statistiques de performance")]
     public bool showPerformanceStats = false;
 
-    // Components
     private Rigidbody rb;
     private MeshFilter meshFilter;
     private Mesh deformableMesh;
 
-    // Mesh data
     private Vector3[] originalVertices;
     private Vector3[] currentVertices;
     private Vector3[] vertexVelocities;
     private float[] vertexDeformations;
 
-    // Performance optimization - track only active vertices
+    // Optimisation: tracking vertices actifs uniquement
     private List<int> activeVertexIndices = new List<int>(128);
     private HashSet<int> activeVertexSet = new HashSet<int>();
-    private List<int> verticesToRemove = new List<int>(64); // Réutilisé à chaque frame
+    private List<int> verticesToRemove = new List<int>(64);
 
-    // Impact state
     private Vector3 lastImpactPoint;
     private Vector3 lastImpactNormal;
     private Vector3 lastRelativeVelocity;
@@ -142,18 +129,14 @@ public class DeformableBall : MonoBehaviour
     private bool isDeforming = false;
     private float deformationTimer = 0f;
 
-    // Cached values
     private float originalRadius;
     private Vector3 originalScale;
     private float influenceRadius;
     private float stiffnessConstant;
     private bool needsNormalRecalculation = false;
 
-    // Performance stats
     private int lastActiveVertexCount = 0;
     private float lastUpdateTime = 0f;
-
-    // Preset tracking
     private MaterialPreset lastAppliedPreset = MaterialPreset.Custom;
 
     void Start()
@@ -183,8 +166,7 @@ public class DeformableBall : MonoBehaviour
         vertexDeformations = new float[originalVertices.Length];
 
         System.Array.Copy(originalVertices, currentVertices, originalVertices.Length);
-        
-        // Pre-allocate capacity based on expected active vertices
+
         int expectedActive = Mathf.Min(originalVertices.Length / 4, 256);
         activeVertexIndices = new List<int>(expectedActive);
         activeVertexSet = new HashSet<int>();
@@ -193,10 +175,12 @@ public class DeformableBall : MonoBehaviour
 
     void ConfigurePhysics()
     {
+        // Continuous collision pour détecter les impacts à haute vitesse
         if (rb.collisionDetectionMode == CollisionDetectionMode.Discrete)
         {
             rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
         }
+        // Interpolation pour un mouvement fluide
         if (rb.interpolation == RigidbodyInterpolation.None)
         {
             rb.interpolation = RigidbodyInterpolation.Interpolate;
@@ -228,22 +212,17 @@ public class DeformableBall : MonoBehaviour
 
     void OnValidate()
     {
-        // Recalculer le rayon d'influence quand le paramètre change dans l'éditeur
         if (originalRadius > 0f)
         {
             UpdateInfluenceRadius();
         }
 
-        // Appliquer le preset si changé dans l'inspecteur
         if (materialPreset != MaterialPreset.Custom && materialPreset != lastAppliedPreset)
         {
             ApplyMaterialPreset(materialPreset);
         }
     }
 
-    /// <summary>
-    /// Applique un preset de matériau avec des paramètres physiques prédéfinis
-    /// </summary>
     [ContextMenu("Apply Current Preset")]
     public void ApplyMaterialPreset(MaterialPreset preset)
     {
@@ -265,7 +244,6 @@ public class DeformableBall : MonoBehaviour
                 recoveryExponent = 2.0f;
                 preventOvershoot = true;
 
-                // Paramètres avancés
                 minSpatialInfluence = 0.035f;
                 spatialInfluenceExponent = 1.35f;
                 radiusNormalizationFactor = 0.6f;
@@ -273,7 +251,6 @@ public class DeformableBall : MonoBehaviour
                 overshootTolerance = 1.02f;
                 overshootVelocityDamping = 0.25f;
 
-                // Qualité de simulation
                 substepsPerFrame = 3;
                 maxDeformationTime = 6f;
 
@@ -285,7 +262,6 @@ public class DeformableBall : MonoBehaviour
                 break;
         }
 
-        // Recalculer les constantes dérivées
         if (Application.isPlaying)
         {
             UpdateInfluenceRadius();
@@ -293,7 +269,6 @@ public class DeformableBall : MonoBehaviour
         }
     }
 
-    // Context menu pour appliquer rapidement les presets
     [ContextMenu("Preset: Souple")]
     void ApplySouple() { materialPreset = MaterialPreset.Souple; ApplyMaterialPreset(materialPreset); }
 
@@ -302,24 +277,22 @@ public class DeformableBall : MonoBehaviour
         if (isDeforming)
         {
             float startTime = Time.realtimeSinceStartup;
-            
+
             needsNormalRecalculation = false;
-            
-            // Substeps for better numerical stability
+
             float subDeltaTime = Time.fixedDeltaTime / substepsPerFrame;
             for (int step = 0; step < substepsPerFrame; step++)
             {
                 UpdateDeformationSubstep(subDeltaTime);
             }
-            
-            // Recalculer les normales une seule fois après tous les substeps
+
             if (needsNormalRecalculation)
             {
                 UpdateMeshGeometry();
             }
-            
+
             deformationTimer += Time.fixedDeltaTime;
-            
+
             if (showPerformanceStats)
             {
                 lastUpdateTime = (Time.realtimeSinceStartup - startTime) * 1000f;
@@ -338,11 +311,12 @@ public class DeformableBall : MonoBehaviour
 
         ContactPoint contact = collision.contacts[0];
 
-        // Calculate relative velocity properly (account for other object's velocity)
-        Vector3 otherVelocity = collision.rigidbody != null ? 
+        // Calcul de la vélocité relative pour gérer les objets en mouvement
+        Vector3 otherVelocity = collision.rigidbody != null ?
             collision.rigidbody.linearVelocity : Vector3.zero;
         lastRelativeVelocity = rb.linearVelocity - otherVelocity;
-        
+
+        // Force d'impact basée sur la composante normale de la vélocité
         Vector3 normalVelocity = Vector3.Project(lastRelativeVelocity, contact.normal);
         impactForce = normalVelocity.magnitude * rb.mass;
 
@@ -359,21 +333,22 @@ public class DeformableBall : MonoBehaviour
     {
         isDeforming = true;
         deformationTimer = 0f;
-        
-        // Clear previous active vertices
+
         activeVertexIndices.Clear();
         activeVertexSet.Clear();
 
+        // Normaliser la force d'impact pour contrôler l'intensité de déformation
         float normalizedForce = Mathf.Clamp01(impactForce / (rb.mass * forceNormalizationDivisor));
-        float influenceRadiusSqr = influenceRadius * influenceRadius; // Optimisation
+        float influenceRadiusSqr = influenceRadius * influenceRadius;
 
+        // Appliquer la déformation à chaque vertex selon sa proximité à l'impact
         for (int i = 0; i < originalVertices.Length; i++)
         {
             Vector3 vertex = originalVertices[i];
             Vector3 toVertex = vertex - lastImpactPoint;
             float distanceSqrToImpact = toVertex.sqrMagnitude;
-            
-            // Early rejection avec distance au carré (évite sqrt)
+
+            // Early rejection (évite sqrt)
             if (distanceSqrToImpact > influenceRadiusSqr)
             {
                 currentVertices[i] = vertex;
@@ -389,6 +364,7 @@ public class DeformableBall : MonoBehaviour
                 float compressionAmount = normalizedForce * maxDeformation * spatialInfluence;
                 vertexDeformations[i] = compressionAmount;
 
+                // Déformation avec conservation du volume (Poisson)
                 Vector3 deformation = CalculateVolumeConservingDeformation(
                     vertex,
                     lastImpactNormal,
@@ -397,8 +373,7 @@ public class DeformableBall : MonoBehaviour
 
                 currentVertices[i] = vertex + deformation;
                 vertexVelocities[i] = -deformation * recoverySpeed * snapbackMultiplier;
-                
-                // Add to active list
+
                 activeVertexIndices.Add(i);
                 activeVertexSet.Add(i);
             }
@@ -415,8 +390,10 @@ public class DeformableBall : MonoBehaviour
 
     float CalculateSpatialInfluence(Vector3 vertex, float distanceToImpact)
     {
+        // Influence diminue avec la distance
         float distanceFactor = Mathf.Max(0f, 1f - (distanceToImpact / influenceRadius));
 
+        // Influence plus forte pour vertices alignés avec la normale d'impact
         Vector3 vertexDirection = vertex.normalized;
         float angleFactor = Mathf.Max(0f, Vector3.Dot(vertexDirection, lastImpactNormal));
 
@@ -426,26 +403,19 @@ public class DeformableBall : MonoBehaviour
 
     Vector3 CalculateVolumeConservingDeformation(Vector3 vertex, Vector3 impactNormal, float compression)
     {
-        // Compression along the impact normal
         Vector3 normalDeformation = -impactNormal * compression;
 
-        // Find the radial component of the vertex (perpendicular to impact normal)
-        // This is the key to proper volume conservation - expand in ALL perpendicular directions
+        // Expansion radiale pour conserver le volume (ratio de Poisson)
         Vector3 radialDirection = Vector3.ProjectOnPlane(vertex, impactNormal);
 
-        // If the vertex is on or very close to the impact axis, no radial expansion needed
         if (radialDirection.sqrMagnitude < 0.0001f)
         {
             return normalDeformation;
         }
 
-        // Normalize to get the radial direction
         float radialDistance = radialDirection.magnitude;
         radialDirection /= radialDistance;
 
-        // Radial expansion proportional to compression and Poisson ratio
-        // Poisson's ratio defines: transverse_strain = -ν * axial_strain
-        // For volume conservation, perpendicular directions expand when compressed
         float radialExpansion = compression * poissonRatio;
         Vector3 radialDeformation = radialDirection * radialExpansion;
 
@@ -455,27 +425,27 @@ public class DeformableBall : MonoBehaviour
     void UpdateDeformationSubstep(float deltaTime)
     {
         bool hasActiveDeformation = false;
-        verticesToRemove.Clear(); // Réutiliser la liste au lieu d'en créer une nouvelle
+        verticesToRemove.Clear();
 
-        // Only update active vertices
+        // Mise à jour des vertices actifs uniquement (optimisation)
         for (int idx = 0; idx < activeVertexIndices.Count; idx++)
         {
             int i = activeVertexIndices[idx];
-            
+
             if (vertexDeformations[i] > convergenceThreshold)
             {
                 hasActiveDeformation = true;
 
                 Vector3 displacement = currentVertices[i] - originalVertices[i];
                 float displacementMag = displacement.magnitude;
-                
-                // Safety check
+
                 if (displacementMag < 0.0001f)
                 {
                     verticesToRemove.Add(i);
                     continue;
                 }
-                
+
+                // Force de restauration avec courbe exponentielle
                 float exponentialFactor = Mathf.Pow(
                     displacementMag / (originalRadius * radiusNormalizationFactor),
                     recoveryExponent - 1f
@@ -487,21 +457,18 @@ public class DeformableBall : MonoBehaviour
 
                 Vector3 newPosition = currentVertices[i] + vertexVelocities[i] * deltaTime;
 
-                // Prevent overshoot simplifié
+                // Empêcher le vertex de dépasser sa position originale
                 if (preventOvershoot)
                 {
                     Vector3 originalVertex = originalVertices[i];
                     float originalDistSqr = originalVertex.sqrMagnitude;
-                    
-                    // Safety check for vertices near center
+
                     if (originalDistSqr > 0.0001f)
                     {
                         float newDistSqr = newPosition.sqrMagnitude;
 
-                        // Si le vertex s'éloigne plus que la position originale
                         if (newDistSqr > originalDistSqr * overshootTolerance)
                         {
-                            // Clamper à la distance originale
                             float originalDist = Mathf.Sqrt(originalDistSqr);
                             newPosition = newPosition.normalized * originalDist;
                             vertexVelocities[i] *= overshootVelocityDamping;
@@ -513,12 +480,12 @@ public class DeformableBall : MonoBehaviour
 
                 float distToOriginal = Vector3.Distance(currentVertices[i], originalVertices[i]);
                 vertexDeformations[i] = distToOriginal;
-                
+
                 needsNormalRecalculation = true;
             }
             else
             {
-                // Smoothly return to rest
+                // Retour final progressif vers la forme d'origine
                 currentVertices[i] = Vector3.Lerp(
                     currentVertices[i],
                     originalVertices[i],
@@ -527,20 +494,18 @@ public class DeformableBall : MonoBehaviour
 
                 vertexVelocities[i] = Vector3.zero;
                 vertexDeformations[i] = 0f;
-                
-                // Mark for removal from active list
+
                 verticesToRemove.Add(i);
                 needsNormalRecalculation = true;
             }
         }
 
-        // Remove converged vertices from active list
+        // Nettoyer les vertices convergés de la liste active
         foreach (int vertexIndex in verticesToRemove)
         {
             activeVertexSet.Remove(vertexIndex);
         }
 
-        // Manual removal to avoid lambda allocation
         for (int i = activeVertexIndices.Count - 1; i >= 0; i--)
         {
             if (!activeVertexSet.Contains(activeVertexIndices[i]))
@@ -548,11 +513,8 @@ public class DeformableBall : MonoBehaviour
                 activeVertexIndices.RemoveAt(i);
             }
         }
-        
-        lastActiveVertexCount = activeVertexIndices.Count;
 
-        // Mesh update is deferred to FixedUpdate -> UpdateMeshGeometry
-        // to avoid multiple updates per frame
+        lastActiveVertexCount = activeVertexIndices.Count;
 
         if (!hasActiveDeformation || deformationTimer > maxDeformationTime)
         {
@@ -583,8 +545,6 @@ public class DeformableBall : MonoBehaviour
         deformableMesh.vertices = currentVertices;
         deformableMesh.RecalculateNormals();
         deformableMesh.RecalculateBounds();
-        // Only recalculate tangents if needed for your materials
-        // deformableMesh.RecalculateTangents();
     }
 
     public void LaunchBall(Vector3 force)
@@ -617,7 +577,6 @@ public class DeformableBall : MonoBehaviour
         ResetBall(transform.position);
     }
 
-    // Public properties
     public bool IsDeforming => isDeforming;
     public float CurrentImpactForce => impactForce;
     public float DeformationProgress => deformationTimer;
@@ -632,16 +591,13 @@ public class DeformableBall : MonoBehaviour
 
         Vector3 worldImpactPoint = transform.TransformPoint(lastImpactPoint);
 
-        // Impact point
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(worldImpactPoint, 0.05f);
 
-        // Impact normal
         Gizmos.color = Color.yellow;
         Vector3 worldNormal = transform.TransformDirection(lastImpactNormal);
         Gizmos.DrawLine(worldImpactPoint, worldImpactPoint + worldNormal * 0.3f);
 
-        // Visualize deformed vertices
         for (int i = 0; i < currentVertices.Length; i++)
         {
             float deformation = Vector3.Distance(currentVertices[i], originalVertices[i]);
@@ -650,11 +606,9 @@ public class DeformableBall : MonoBehaviour
                 Vector3 from = transform.TransformPoint(originalVertices[i]);
                 Vector3 to = transform.TransformPoint(currentVertices[i]);
 
-                // Color based on deformation intensity (green = low, red = high)
                 float t = Mathf.Clamp01(deformation / (originalRadius * 0.3f));
                 Gizmos.color = Color.Lerp(Color.green, Color.red, t);
 
-                // Show displacement
                 Gizmos.DrawLine(from, to);
             }
         }
