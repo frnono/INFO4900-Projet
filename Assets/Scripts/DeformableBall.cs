@@ -25,7 +25,7 @@ public class DeformableBall : MonoBehaviour
     [Space(10)]
     [Header("Paramètres Physiques de la Balle")]
     [Tooltip("Module de Young - Rigidité du matériau (N/m²)")]
-    [Range(1000f, 50000f)]
+    [Range(0f, 25000f)]
     public float youngModulus = 15000f;
 
     [Space(10)]
@@ -46,7 +46,7 @@ public class DeformableBall : MonoBehaviour
     public float forceNormalizationDivisor = 5f;
 
     [Tooltip("Rayon d'influence de la déformation (multiplicateur du rayon original)")]
-    [Range(1f, 3f)]
+    [Range(1f, 5f)]
     public float influenceRadiusMultiplier = 1.5f;
 
     [Tooltip("Coefficient de Poisson - Conservation du volume (0.3-0.5 pour caoutchouc)")]
@@ -252,27 +252,31 @@ public class DeformableBall : MonoBehaviour
         switch (preset)
         {
             case MaterialPreset.Souple:
-                youngModulus = 3500f;
+                youngModulus = 500f;
                 maxDeformation = 0.75f;
-                recoverySpeed =  8f;
-                forceThreshold = 0.5f;
+                recoverySpeed = 8f;
+                forceThreshold = 0.25f;
                 forceNormalizationDivisor = 10f;
-                influenceRadiusMultiplier = 2.2f;
+                influenceRadiusMultiplier = 5f;
                 poissonRatio = 0.46f;
+
                 dampingFactor = 0.92f;
                 snapbackMultiplier = 1.8f;
                 recoveryExponent = 2.0f;
                 preventOvershoot = true;
+
                 // Paramètres avancés
-                minSpatialInfluence = 0.015f;
-                spatialInfluenceExponent = 1.8f;
+                minSpatialInfluence = 0.035f;
+                spatialInfluenceExponent = 1.35f;
                 radiusNormalizationFactor = 0.6f;
                 finalRecoverySpeedMultiplier = 4f;
                 overshootTolerance = 1.02f;
                 overshootVelocityDamping = 0.25f;
+
                 // Qualité de simulation
                 substepsPerFrame = 3;
                 maxDeformationTime = 6f;
+
                 Debug.Log("Preset appliqué: Souple");
                 break;
 
