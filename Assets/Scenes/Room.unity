@@ -2039,6 +2039,7 @@ MonoBehaviour:
   m_Script: {fileID: 1426721084}
   m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.HighDefinition.Runtime::UnityEngine.Rendering.HighDefinition.SceneObjectIDMapSceneAsset
+  m_Entries: []
 --- !u!4 &390245072
 Transform:
   m_ObjectHideFlags: 19
@@ -2613,6 +2614,7 @@ MonoBehaviour:
   m_Script: {fileID: 777790853}
   m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.HighDefinition.Runtime::UnityEngine.Rendering.HighDefinition.SceneObjectIDMapSceneAsset
+  m_Entries: []
 --- !u!4 &588386101
 Transform:
   m_ObjectHideFlags: 19
@@ -6811,15 +6813,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d74840db96ae0c24d849b8a619d7eba4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FollowBallCamera
-  target: {fileID: 455487342}
-  targetRb: {fileID: 455487336}
-  followOffset: {x: 4, y: 1, z: 2}
-  followSmooth: 5
+  cat: {fileID: 2114919231}
+  ball: {fileID: 455487342}
+  ballRb: {fileID: 455487336}
+  catOffset: {x: -1, y: 1, z: -3}
+  ballOffset: {x: 0, y: 3, z: -6}
   roomViewPoint: {fileID: 704588959}
   roomSmooth: 2
-  stopSpeedThreshold: 0.1
+  followSmooth: 5
+  rotationSmooth: 3
   movedSpeedThreshold: 0.2
+  stopSpeedThreshold: 0.03
+  stopTimeRequired: 1
+  lookAtCat: 1
   lookAtBall: 1
+  state: 0
 --- !u!4 &1712526447 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 472506, guid: 1228485cfbf8d844285e7d7804533fd7, type: 3}
@@ -7865,6 +7873,14 @@ PrefabInstance:
     - target: {fileID: 1431178193436375253, guid: fe8be7c477d91b74f89aa05f238b20bf, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: -179.877
+      objectReference: {fileID: 0}
+    - target: {fileID: 2450318381542157450, guid: fe8be7c477d91b74f89aa05f238b20bf, type: 3}
+      propertyPath: m_LinearDamping
+      value: 0.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2450318381542157450, guid: fe8be7c477d91b74f89aa05f238b20bf, type: 3}
+      propertyPath: m_AngularDamping
+      value: 0.3
       objectReference: {fileID: 0}
     - target: {fileID: 2905334292429358083, guid: fe8be7c477d91b74f89aa05f238b20bf, type: 3}
       propertyPath: m_Mesh
