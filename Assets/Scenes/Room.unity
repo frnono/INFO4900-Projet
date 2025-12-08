@@ -2039,7 +2039,6 @@ MonoBehaviour:
   m_Script: {fileID: 1426721084}
   m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.HighDefinition.Runtime::UnityEngine.Rendering.HighDefinition.SceneObjectIDMapSceneAsset
-  m_Entries: []
 --- !u!4 &390245072
 Transform:
   m_ObjectHideFlags: 19
@@ -2614,7 +2613,6 @@ MonoBehaviour:
   m_Script: {fileID: 777790853}
   m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.HighDefinition.Runtime::UnityEngine.Rendering.HighDefinition.SceneObjectIDMapSceneAsset
-  m_Entries: []
 --- !u!4 &588386101
 Transform:
   m_ObjectHideFlags: 19
@@ -7793,11 +7791,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CatWalk
   walkPoint: {fileID: 1849242823}
-  walkSpeed: 0.5
+  walkSpeed: 1
   pawHitPoint: {fileID: 1386171587}
   ballRb: {fileID: 455487336}
   hitDistance: 0.4
-  hitForce: 2
+  hitForce: 3
 --- !u!4 &2114919231
 Transform:
   m_ObjectHideFlags: 0
